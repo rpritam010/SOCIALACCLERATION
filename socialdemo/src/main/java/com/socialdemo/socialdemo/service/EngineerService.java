@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.TreeSet;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -26,19 +27,27 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.socialdemo.socialdemo.dto.EngineerWorkDTO;
 import com.socialdemo.socialdemo.dto.FaceTimeResponseDTO;
+import com.socialdemo.socialdemo.dto.SkillMapping;
 import com.socialdemo.socialdemo.dto.StatusResponseDTO;
 import com.socialdemo.socialdemo.entity.DataPojo;
 import com.socialdemo.socialdemo.entity.EngineerDetails;
 import com.socialdemo.socialdemo.entity.EngineerPrefrence;
+import com.socialdemo.socialdemo.entity.JobDetails;
 import com.socialdemo.socialdemo.entity.NotificationPojo;
 import com.socialdemo.socialdemo.entity.Profile;
 import com.socialdemo.socialdemo.entity.Status;
+import com.socialdemo.socialdemo.entity.TaskType;
+import com.socialdemo.socialdemo.repository.EinsetRepository;
 import com.socialdemo.socialdemo.repository.EngineerDetailsRepository;
 import com.socialdemo.socialdemo.repository.EngineerPrefrenceRepository;
 import com.socialdemo.socialdemo.repository.EngineerProfileRepository;
+import com.socialdemo.socialdemo.repository.JobDetailsRepository;
 import com.socialdemo.socialdemo.repository.ProfileRepository;
 import com.socialdemo.socialdemo.repository.StatusRepository;
+import com.socialdemo.socialdemo.repository.TaskTypeRepository;
+import com.socialdemo.socialdemo.repository.TaskTypeSkillRepository;
 
 @Service
 public class EngineerService {
@@ -124,7 +133,7 @@ public class EngineerService {
 
 			Status status1 = opt.isPresent() ? opt.get() : null;
 
-			status1.setStatus(faceTimeResponseDTO.getFaceTimeId());
+			status1.setFaceTimeId(faceTimeResponseDTO.getFaceTimeId());
 
 			repo.save(status1);
 
@@ -340,6 +349,128 @@ public class EngineerService {
 		return response;
 
 
+	}
+
+	@Autowired
+	EinsetRepository einsetRepository;
+	
+	@Autowired
+	JobDetailsRepository jobDetailsRepository;
+	
+	@Autowired
+	TaskTypeSkillRepository taskTypeSkillRepository;
+	
+	@Autowired
+	TaskTypeRepository taskTypeRepository;
+	
+	
+	List<EngineerWorkDTO> engineerWorkDTOList = new ArrayList<EngineerWorkDTO>();
+	
+	String datetime;
+	
+	String commitdate;
+	
+	String task;
+	
+	String description;
+		
+	
+	public List<EngineerWorkDTO> getEngineerWork(String techcode) {
+
+		List<String> vpin = einsetRepository.findAllById(techcode);
+		
+		logger.info("the vpin is :" +vpin);
+		
+		logger.info("getTask started");
+		
+		List<JobDetails> jobDetails = jobDetailsRepository.getTaskType(vpin.get(0));
+		
+		jobDetails.stream().forEach(jobDetailsList->{
+			datetime = jobDetailsList.getDatetime();
+			
+			commitdate = jobDetailsList.getEnddate();
+			
+			task = jobDetailsList.getTasktype();
+			
+			EngineerWorkDTO engineerWorkDTO = new EngineerWorkDTO();
+			
+			logger.info("get tasks ends --- subskill started");
+			
+			logger.info("tell me the task :" +task);
+			
+			List<String> subSkills = jobDetailsRepository.getListOfSubSkills(task);
+			
+			logger.info("get primary skills started:");
+			
+			List<String> primarySkill = taskTypeSkillRepository.getPrimarySkill(task);
+			
+			logger.info("get primary skill : " +primarySkill.get(0));
+			
+			logger.info("get description started:");
+			
+			List<TaskType> taskType = taskTypeRepository.getDescription(task);
+			
+			taskType.stream().forEach(taskTypeList->{
+				description = taskTypeList.getDescription1() + taskTypeList.getDescription2();
+			});
+			logger.info("subskill ended");
+			
+			engineerWorkDTO.setWm_pin(vpin.get(0));
+			
+			engineerWorkDTO.setStartTime(datetime);
+			
+			engineerWorkDTO.setEndTime(commitdate);
+			
+			engineerWorkDTO.setTaskDescription(description);
+			
+			engineerWorkDTO.setTaskType(task);
+			
+			engineerWorkDTO.setTechcode(techcode);
+			
+			SkillMapping skillMapping = new SkillMapping();
+			
+			skillMapping.setSkillId(primarySkill.get(0));
+			
+			skillMapping.setDefaultSkill("1");
+			
+//			List<SkillMapping> skillMappingLs = new ArrayList<>();
+//			
+//			skillMappingLs.add(skillMapping);
+//			
+//			engineerWorkDTO.setSkillMapping(skillMappingLs);
+//			
+//			subSkills.stream().forEach(subSkillsList->{
+//				SkillMapping skillMapping1 = new SkillMapping();
+//				
+//				skillMapping1.setSkillId(subSkillsList);
+//				
+//				skillMapping1.setDefaultSkill("0");
+//				
+//				List<SkillMapping> skillMappingLs1 = new ArrayList<>();
+//				
+//				skillMappingLs1.add(skillMapping1);
+//				
+//				engineerWorkDTO.setSkillMapping(skillMappingLs1);
+//			});
+//			
+//			engineerWorkDTOList.add(engineerWorkDTO);
+//		});
+			List<SkillMapping> skillMappingLs = new ArrayList<>();
+			skillMappingLs.add(skillMapping);
+			TreeSet<SkillMapping> uniqueSkills =new TreeSet<>();
+			subSkills.stream().forEach(subSkillsList->{
+				SkillMapping skillMapping1 = new SkillMapping();
+				
+				skillMapping1.setSkillId(subSkillsList);
+				skillMapping1.setDefaultSkill("0");
+				uniqueSkills.add(skillMapping1);
+			});
+			skillMappingLs.addAll(uniqueSkills);
+			engineerWorkDTO.setSkillMapping(skillMappingLs);
+			engineerWorkDTOList.add(engineerWorkDTO);
+		});
+		
+		return engineerWorkDTOList;
 	}
 
 }
