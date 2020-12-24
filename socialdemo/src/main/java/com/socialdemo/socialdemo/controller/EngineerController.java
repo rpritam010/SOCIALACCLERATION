@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.socialdemo.socialdemo.dto.EngineerWorkDTO;
 import com.socialdemo.socialdemo.dto.FaceTimeResponseDTO;
 import com.socialdemo.socialdemo.dto.StatusResponseDTO;
 import com.socialdemo.socialdemo.entity.EngineerDetails;
@@ -125,6 +126,11 @@ public class EngineerController {
 
 		// return ResponseEntity.ok().body(body);
 		return ResponseEntity.ok(engineerService.sendNotification(jsonParam));
+	}
+	
+	@GetMapping("/engineer/{techcode}")
+	public List<EngineerWorkDTO> getEngineer(@PathVariable String techcode){
+		return engineerService.getEngineerWork(techcode);
 	}
 
 }
