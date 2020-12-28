@@ -15,7 +15,7 @@ public interface JobDetailsRepository extends JpaRepository<JobDetails, Integer>
 	@Query("SELECT jd FROM JobDetails jd WHERE jd.pin=:pin")
 	List<JobDetails> getTaskType(@Param("pin") String pin);
 	
-	@Query( "SELECT jd.skillcode FROM JobDetails jd FROM jd.tasktype=:tasktype")	
+	@Query( "SELECT jd.skillcode FROM JobDetails jd WHERE jd.tasktype=:tasktype")	
 	List<String> getListOfSubSkills(@Param("tasktype") String tasktype);
 
 }
