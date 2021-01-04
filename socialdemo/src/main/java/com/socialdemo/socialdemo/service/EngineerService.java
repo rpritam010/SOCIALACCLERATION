@@ -69,6 +69,30 @@ public class EngineerService {
 
 	@Autowired
 	private EngineerPrefrenceRepository epRepository;
+	
+	@Autowired
+	EinsetRepository einsetRepository;
+	
+	@Autowired
+	JobDetailsRepository jobDetailsRepository;
+	
+	@Autowired
+	TaskTypeSkillRepository taskTypeSkillRepository;
+	
+	@Autowired
+	TaskTypeRepository taskTypeRepository;
+	
+	
+	List<EngineerWorkDTO> engineerWorkDTOList = new ArrayList<EngineerWorkDTO>();
+	
+	String datetime;
+	
+	String commitdate;
+	
+	String task;
+	
+	String description;
+	
 
 	public List<EngineerDetails> getEngineer(String techcode) {
 
@@ -161,11 +185,10 @@ public class EngineerService {
 		JSONObject jsonObject = new JSONObject(jsonParam);
 
 		JSONArray skillsArr = jsonObject.getJSONArray("requestedSkill");
-		
+
 		String taskType = jsonObject.getString("taskType");
 
 		String comments = jsonObject.getString("comments");
-
 
 		JSONObject jsonToReturn = new JSONObject();
 
@@ -173,89 +196,96 @@ public class EngineerService {
 
 		if (skillsArr != null && skillsArr.length() > 0) {
 
-			for (int i = 0; i < skillsArr.length(); i++) {
+		for (int i = 0; i < skillsArr.length(); i++) {
 
-				skillList.add(skillsArr.getString(i));
-
-			}
+		skillList.add(skillsArr.getString(i));
 
 		}
 
-		List<EngineerPrefrence> prefrenceDetail = (epRepository.findByEngineerPrefrence(skillList));
+		}
+
+		List<String> deviceTokenList = new ArrayList<String>();
+
+		for (int k = 0; k < skillList.size(); k++) {
+
+		List<EngineerPrefrence> prefrenceDetail = null;
+
+		if (deviceTokenList.size() < 4) {
+
+		prefrenceDetail = epRepository.findByEngineerPrefrence(skillList.get(k));
+
+		}
+
+		// prefrenceDetail.addAll((epRepository.findByEngineerPrefrence(skillList.get(k))));
 
 		if (prefrenceDetail != null && prefrenceDetail.size() > 0) {
 
-			for (int i = 0; i < prefrenceDetail.size(); i++) {
+		for (int i = 0; i < prefrenceDetail.size(); i++) {
 
-				if (prefrenceDetail.get(i).getActive().equals("Y")) {
+		if (prefrenceDetail.get(i).getActive().equals("Y") && deviceTokenList.size() < 5) {
 
-					List<Profile> empProfile = profileRepo.findByProfile(prefrenceDetail.get(i).getTechCode());
+		List<Profile> empProfile = profileRepo.findByProfile(prefrenceDetail.get(i).getTechCode());
 
-					if (empProfile != null && empProfile.size() > 0) {
+		if (empProfile != null && empProfile.size() > 0) {
 
-						for (int j = 0; j < empProfile.size(); j++) {
+		for (int j = 0; j < empProfile.size(); j++) {
 
-							NotificationPojo notificationModal = new NotificationPojo();
-							
-							DataPojo dataModal = new DataPojo();
-							
-							List<Profile> reqEmpProfile = profileRepo.findByProfile(jsonObject.get("techCode").toString());
-
-
-							jsonToReturn.put("to", empProfile.get(j).getDeviceToken());
-
-							notificationModal.setClickAction("FACETIME_CALL");
-
-							notificationModal.setTitle("join Facetime call now");
-
-							notificationModal.setMutableContent("0");
-
-							notificationModal.setBody(reqEmpProfile.get(0).getName()+" "+"is working on "+"'"+taskType+"'"+"."+" "+"He needs assistance on "+"'"+comments+"'"+" "+"can you help?");
-							
-							dataModal.setTitle("join Facetime call now");
-							
-							dataModal.setBody(reqEmpProfile.get(0).getName()+" "+"is working on "+"'"+taskType+"'"+"."+" "+"He needs assistance on "+"'"+comments+"'"+" "+"can you help?");
-							
-							
-							//jsonToReturn.put("facetimeID", reqEmpProfile.get(0).getFaceTimeId());
-							dataModal.setFaceTimeId(reqEmpProfile.get(0).getFaceTimeId());
-						
-							
-							//jsonToReturn.put("notification", notificationModal);
-							ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-							
-							try {
-								jsonToReturn.put("notification", new JSONObject(ow.writeValueAsString(notificationModal)));
-							} catch (JSONException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							} catch (JsonProcessingException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-							
-							//for the dataModal															
-							
-							try {
-								jsonToReturn.put("data", new JSONObject(ow.writeValueAsString(dataModal)));
-							} catch (JSONException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							} catch (JsonProcessingException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-						}
-							
-					}
-
-				}
-
-			}
+		deviceTokenList.add(empProfile.get(j).getDeviceToken());
+		}
 
 		}
-		 		//return jsonToReturn.toString();
 
+		}
+
+		}
+
+		}
+		}
+
+		jsonToReturn.put("to", deviceTokenList);
+
+		NotificationPojo notificationModal = new NotificationPojo();
+
+		DataPojo dataModal = new DataPojo();
+
+		List<Profile> reqEmpProfile = profileRepo.findByProfile(jsonObject.get("techCode").toString());
+
+		// jsonToReturn.put("to", empProfile.get(j).getDeviceToken());
+
+		notificationModal.setClickAction("FACETIME_CALL");
+
+		notificationModal.setTitle("join Facetime call now");
+
+		notificationModal.setMutableContent("0");
+
+		notificationModal.setBody(reqEmpProfile.get(0).getName() + " " + "is working on " + "'" + taskType + "'" + "."
+		+ " " + "He needs assistance on " + "'" + comments + "'" + " " + "can you help?");
+
+		dataModal.setTitle("join Facetime call now");
+
+		dataModal.setBody(reqEmpProfile.get(0).getName() + " " + "is working on " + "'" + taskType + "'" + "." + " "
+		+ "He needs assistance on " + "'" + comments + "'" + " " + "can you help?");
+
+		// jsonToReturn.put("facetimeID", reqEmpProfile.get(0).getFaceTimeId());
+		dataModal.setFaceTimeId(reqEmpProfile.get(0).getFaceTimeId());
+
+		// jsonToReturn.put("notification", notificationModal);
+		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+
+		try {
+		jsonToReturn.put("notification", new JSONObject(ow.writeValueAsString(notificationModal)));
+		jsonToReturn.put("data", new JSONObject(ow.writeValueAsString(dataModal)));
+		} catch (JSONException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+		} catch (JsonProcessingException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+		}
+
+		//return jsonToReturn.toString();
+
+		//}
 //		RestTemplate restTemplate = new RestTemplate();
 //		
 //		UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl("https://fcm.googleapis.com/fcm/send");
@@ -351,28 +381,6 @@ public class EngineerService {
 
 	}
 
-	@Autowired
-	EinsetRepository einsetRepository;
-	
-	@Autowired
-	JobDetailsRepository jobDetailsRepository;
-	
-	@Autowired
-	TaskTypeSkillRepository taskTypeSkillRepository;
-	
-	@Autowired
-	TaskTypeRepository taskTypeRepository;
-	
-	
-	List<EngineerWorkDTO> engineerWorkDTOList = new ArrayList<EngineerWorkDTO>();
-	
-	String datetime;
-	
-	String commitdate;
-	
-	String task;
-	
-	String description;
 		
 	
 	public List<EngineerWorkDTO> getEngineerWork(String techcode) {
