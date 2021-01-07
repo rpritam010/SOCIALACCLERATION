@@ -29,6 +29,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.socialdemo.socialdemo.dto.EngineerWorkDTO;
 import com.socialdemo.socialdemo.dto.FaceTimeResponseDTO;
+import com.socialdemo.socialdemo.dto.Feedback;
+import com.socialdemo.socialdemo.dto.ReviewDTO;
 import com.socialdemo.socialdemo.dto.SkillMapping;
 import com.socialdemo.socialdemo.dto.StatusResponseDTO;
 import com.socialdemo.socialdemo.entity.DataPojo;
@@ -37,6 +39,7 @@ import com.socialdemo.socialdemo.entity.EngineerPrefrence;
 import com.socialdemo.socialdemo.entity.JobDetails;
 import com.socialdemo.socialdemo.entity.NotificationPojo;
 import com.socialdemo.socialdemo.entity.Profile;
+import com.socialdemo.socialdemo.entity.Review;
 import com.socialdemo.socialdemo.entity.Status;
 import com.socialdemo.socialdemo.entity.TaskType;
 import com.socialdemo.socialdemo.repository.EinsetRepository;
@@ -45,6 +48,7 @@ import com.socialdemo.socialdemo.repository.EngineerPrefrenceRepository;
 import com.socialdemo.socialdemo.repository.EngineerProfileRepository;
 import com.socialdemo.socialdemo.repository.JobDetailsRepository;
 import com.socialdemo.socialdemo.repository.ProfileRepository;
+import com.socialdemo.socialdemo.repository.ReviewRepository;
 import com.socialdemo.socialdemo.repository.StatusRepository;
 import com.socialdemo.socialdemo.repository.TaskTypeRepository;
 import com.socialdemo.socialdemo.repository.TaskTypeSkillRepository;
@@ -69,30 +73,31 @@ public class EngineerService {
 
 	@Autowired
 	private EngineerPrefrenceRepository epRepository;
-	
+
 	@Autowired
 	EinsetRepository einsetRepository;
-	
+
 	@Autowired
 	JobDetailsRepository jobDetailsRepository;
-	
+
 	@Autowired
 	TaskTypeSkillRepository taskTypeSkillRepository;
-	
+
 	@Autowired
 	TaskTypeRepository taskTypeRepository;
-	
-	
+
+	@Autowired
+	ReviewRepository reviewRepository;
+
 	List<EngineerWorkDTO> engineerWorkDTOList = new ArrayList<EngineerWorkDTO>();
-	
+
 	String datetime;
-	
+
 	String commitdate;
-	
+
 	String task;
-	
+
 	String description;
-	
 
 	public List<EngineerDetails> getEngineer(String techcode) {
 
@@ -148,8 +153,7 @@ public class EngineerService {
 		}
 
 	}
-	
-	
+
 	public void updateFaceTime(FaceTimeResponseDTO faceTimeResponseDTO) {
 		try {
 
@@ -168,8 +172,6 @@ public class EngineerService {
 		}
 
 	}
-
-	
 
 	public void updateDeviceToken(String techCode, String deviceToken) {
 
@@ -196,11 +198,11 @@ public class EngineerService {
 
 		if (skillsArr != null && skillsArr.length() > 0) {
 
-		for (int i = 0; i < skillsArr.length(); i++) {
+			for (int i = 0; i < skillsArr.length(); i++) {
 
-		skillList.add(skillsArr.getString(i));
+				skillList.add(skillsArr.getString(i));
 
-		}
+			}
 
 		}
 
@@ -208,38 +210,38 @@ public class EngineerService {
 
 		for (int k = 0; k < skillList.size(); k++) {
 
-		List<EngineerPrefrence> prefrenceDetail = null;
+			List<EngineerPrefrence> prefrenceDetail = null;
 
-		if (deviceTokenList.size() < 4) {
+			if (deviceTokenList.size() < 4) {
 
-		prefrenceDetail = epRepository.findByEngineerPrefrence(skillList.get(k));
+				prefrenceDetail = epRepository.findByEngineerPrefrence(skillList.get(k));
 
-		}
+			}
 
-		// prefrenceDetail.addAll((epRepository.findByEngineerPrefrence(skillList.get(k))));
+			// prefrenceDetail.addAll((epRepository.findByEngineerPrefrence(skillList.get(k))));
 
-		if (prefrenceDetail != null && prefrenceDetail.size() > 0) {
+			if (prefrenceDetail != null && prefrenceDetail.size() > 0) {
 
-		for (int i = 0; i < prefrenceDetail.size(); i++) {
+				for (int i = 0; i < prefrenceDetail.size(); i++) {
 
-		if (prefrenceDetail.get(i).getActive().equals("Y") && deviceTokenList.size() < 5) {
+					if (prefrenceDetail.get(i).getActive().equals("Y") && deviceTokenList.size() < 5) {
 
-		List<Profile> empProfile = profileRepo.findByProfile(prefrenceDetail.get(i).getTechCode());
+						List<Profile> empProfile = profileRepo.findByProfile(prefrenceDetail.get(i).getTechCode());
 
-		if (empProfile != null && empProfile.size() > 0) {
+						if (empProfile != null && empProfile.size() > 0) {
 
-		for (int j = 0; j < empProfile.size(); j++) {
+							for (int j = 0; j < empProfile.size(); j++) {
 
-		deviceTokenList.add(empProfile.get(j).getDeviceToken());
-		}
+								deviceTokenList.add(empProfile.get(j).getDeviceToken());
+							}
 
-		}
+						}
 
-		}
+					}
 
-		}
+				}
 
-		}
+			}
 		}
 
 		jsonToReturn.put("to", deviceTokenList);
@@ -259,12 +261,12 @@ public class EngineerService {
 		notificationModal.setMutableContent("0");
 
 		notificationModal.setBody(reqEmpProfile.get(0).getName() + " " + "is working on " + "'" + taskType + "'" + "."
-		+ " " + "He needs assistance on " + "'" + comments + "'" + " " + "can you help?");
+				+ " " + "He needs assistance on " + "'" + comments + "'" + " " + "can you help?");
 
 		dataModal.setTitle("join Facetime call now");
 
 		dataModal.setBody(reqEmpProfile.get(0).getName() + " " + "is working on " + "'" + taskType + "'" + "." + " "
-		+ "He needs assistance on " + "'" + comments + "'" + " " + "can you help?");
+				+ "He needs assistance on " + "'" + comments + "'" + " " + "can you help?");
 
 		// jsonToReturn.put("facetimeID", reqEmpProfile.get(0).getFaceTimeId());
 		dataModal.setFaceTimeId(reqEmpProfile.get(0).getFaceTimeId());
@@ -273,19 +275,19 @@ public class EngineerService {
 		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
 
 		try {
-		jsonToReturn.put("notification", new JSONObject(ow.writeValueAsString(notificationModal)));
-		jsonToReturn.put("data", new JSONObject(ow.writeValueAsString(dataModal)));
+			jsonToReturn.put("notification", new JSONObject(ow.writeValueAsString(notificationModal)));
+			jsonToReturn.put("data", new JSONObject(ow.writeValueAsString(dataModal)));
 		} catch (JSONException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		} catch (JsonProcessingException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 
-		//return jsonToReturn.toString();
+		// return jsonToReturn.toString();
 
-		//}
+		// }
 //		RestTemplate restTemplate = new RestTemplate();
 //		
 //		UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl("https://fcm.googleapis.com/fcm/send");
@@ -320,7 +322,7 @@ public class EngineerService {
 		con.setRequestProperty("Content-Type", "application/json");
 		con.setRequestProperty("Authorization",
 				"key=AAAASK8QTug:APA91bGsldhw8ldQTmhloi1HgjgGm8tZxluzLiQmdJ9YjqhbeRm5Lc7LjIr4Td8eLh8MD6awYDv2Z8vupAPboFx4IrbHUAJUdITqZNJIDDeXnQS2Bdx2kd1nH0Le6_t69fp9rJ_lxWVe");
-				//"key=AAAAbwhaNR4:APA91bEyGTqrH-UoX4b9OBOXWwVl5dV3pkyC2SubM_UMHJiJzlmXQbSx4WKUhTeUAiYaY4_jorjT0k1mAAu5KV9Z5FXjZ1f2z_jZZnjZw2_4sjP-9J--2kkadx7PnrVzns2DXPnev8Cz");
+		// "key=AAAAbwhaNR4:APA91bEyGTqrH-UoX4b9OBOXWwVl5dV3pkyC2SubM_UMHJiJzlmXQbSx4WKUhTeUAiYaY4_jorjT0k1mAAu5KV9Z5FXjZ1f2z_jZZnjZw2_4sjP-9J--2kkadx7PnrVzns2DXPnev8Cz");
 		try {
 			con.setRequestMethod("POST");
 		} catch (ProtocolException e) {
@@ -378,69 +380,70 @@ public class EngineerService {
 		}
 		return response;
 
+	}
+
+	public void getUiMessage(String uiMessage) {
 
 	}
 
-		
-	
 	public List<EngineerWorkDTO> getEngineerWork(String techcode) {
 
 		List<String> vpin = einsetRepository.findAllById(techcode);
-		
-		logger.info("the vpin is :" +vpin);
-		
+
+		logger.info("the vpin is :" + vpin);
+
 		logger.info("getTask started");
-		
+
 		List<JobDetails> jobDetails = jobDetailsRepository.getTaskType(vpin.get(0));
-		
-		jobDetails.stream().forEach(jobDetailsList->{
+
+		jobDetails.stream().forEach(jobDetailsList -> {
 			datetime = jobDetailsList.getDatetime();
-			
+
 			commitdate = jobDetailsList.getEnddate();
-			
+
 			task = jobDetailsList.getTasktype();
-			
+
 			EngineerWorkDTO engineerWorkDTO = new EngineerWorkDTO();
-			
+
 			logger.info("get tasks ends --- subskill started");
-			
-			logger.info("tell me the task :" +task);
-			
+
+			logger.info("tell me the task :" + task);
+
 			List<String> subSkills = jobDetailsRepository.getListOfSubSkills(task);
-			
+
 			logger.info("get primary skills started:");
-			
+
 			List<String> primarySkill = taskTypeSkillRepository.getPrimarySkill(task);
-			
-			logger.info("get primary skill : " +primarySkill.get(0));
-			
+
+			logger.info("get primary skill : " + primarySkill.get(0));
+
 			logger.info("get description started:");
-			
+
 			List<TaskType> taskType = taskTypeRepository.getDescription(task);
-			
-			taskType.stream().forEach(taskTypeList->{
+
+			taskType.stream().forEach(taskTypeList -> {
 				description = taskTypeList.getDescription1() + taskTypeList.getDescription2();
 			});
 			logger.info("subskill ended");
-			
+
 			engineerWorkDTO.setWm_pin(vpin.get(0));
-			
+
 			engineerWorkDTO.setStartTime(datetime);
-			
+
 			engineerWorkDTO.setEndTime(commitdate);
-			
+
 			engineerWorkDTO.setTaskDescription(description);
-			
+
 			engineerWorkDTO.setTaskType(task);
-			
+
 			engineerWorkDTO.setTechcode(techcode);
-			
+
 			SkillMapping skillMapping = new SkillMapping();
-			
+
 			skillMapping.setSkillId(primarySkill.get(0));
-			
+
 			skillMapping.setDefaultSkill("1");
-			
+
 //			List<SkillMapping> skillMappingLs = new ArrayList<>();
 //			
 //			skillMappingLs.add(skillMapping);
@@ -465,10 +468,10 @@ public class EngineerService {
 //		});
 			List<SkillMapping> skillMappingLs = new ArrayList<>();
 			skillMappingLs.add(skillMapping);
-			TreeSet<SkillMapping> uniqueSkills =new TreeSet<>();
-			subSkills.stream().forEach(subSkillsList->{
+			TreeSet<SkillMapping> uniqueSkills = new TreeSet<>();
+			subSkills.stream().forEach(subSkillsList -> {
 				SkillMapping skillMapping1 = new SkillMapping();
-				
+
 				skillMapping1.setSkillId(subSkillsList);
 				skillMapping1.setDefaultSkill("0");
 				uniqueSkills.add(skillMapping1);
@@ -477,8 +480,26 @@ public class EngineerService {
 			engineerWorkDTO.setSkillMapping(skillMappingLs);
 			engineerWorkDTOList.add(engineerWorkDTO);
 		});
-		
+
 		return engineerWorkDTOList;
+	}
+
+	public void saveReviewData(ReviewDTO reviewDTO) {
+
+		Review review = new Review();
+
+		List<Feedback> feedbackList = reviewDTO.getFeedback();
+		feedbackList.stream().forEach(feedbackobj -> {
+			review.setTechcode(reviewDTO.getTechcode());
+			review.setQuestion(feedbackobj.getQuestion());
+			review.setAnswer(feedbackobj.getAnswer());
+			reviewRepository.save(review);
+		});
+
+	}
+
+	public List<Review> getAll() {
+		return reviewRepository.findAll();
 	}
 
 }
