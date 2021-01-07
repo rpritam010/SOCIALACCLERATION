@@ -29,10 +29,12 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.socialdemo.socialdemo.dto.EngineerWorkDTO;
 import com.socialdemo.socialdemo.dto.FaceTimeResponseDTO;
+import com.socialdemo.socialdemo.dto.ReviewDTO;
 import com.socialdemo.socialdemo.dto.StatusResponseDTO;
 import com.socialdemo.socialdemo.entity.EngineerDetails;
 import com.socialdemo.socialdemo.entity.EngineerPrefrence;
 import com.socialdemo.socialdemo.entity.Profile;
+import com.socialdemo.socialdemo.entity.Review;
 import com.socialdemo.socialdemo.entity.Status;
 import com.socialdemo.socialdemo.repository.EngineerDetailsRepository;
 import com.socialdemo.socialdemo.repository.ProfileRepository;
@@ -75,7 +77,7 @@ public class EngineerController {
 	public void updateStatus(@RequestBody StatusResponseDTO statusResponseDTO) {
 		engineerService.updateStatus(statusResponseDTO);
 	}
-	
+
 	@PatchMapping(value = "/faceTimeResponseDTO/")
 	public void updateStatus(@RequestBody FaceTimeResponseDTO faceTimeResponseDTO) {
 		engineerService.updateFaceTime(faceTimeResponseDTO);
@@ -127,10 +129,28 @@ public class EngineerController {
 		// return ResponseEntity.ok().body(body);
 		return ResponseEntity.ok(engineerService.sendNotification(jsonParam));
 	}
-	
+
+	// getUiMessage method for getting message from ui to terminate the process
+	@RequestMapping(value = "/message", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+	public void getUiMessage(@RequestBody String UiMessage) {
+		engineerService.getUiMessage(UiMessage);
+	}
+
 	@GetMapping("/engineer/{techcode}")
-	public List<EngineerWorkDTO> getEngineer(@PathVariable String techcode){
+	public List<EngineerWorkDTO> getEngineer(@PathVariable String techcode) {
 		return engineerService.getEngineerWork(techcode);
+	}
+
+	// The Below logic is to save review from the engineers
+
+	@RequestMapping(value = "/saveReview", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+	public void saveReview(@RequestBody final ReviewDTO reviewDTO) {
+		engineerService.saveReviewData(reviewDTO);
+	}
+
+	@GetMapping("/review")
+	public List<Review> getAll() {
+		return engineerService.getAll();
 	}
 
 }
