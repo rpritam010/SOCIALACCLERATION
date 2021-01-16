@@ -13,6 +13,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.TreeSet;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -27,9 +29,11 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.socialdemo.socialdemo.dto.AcceptedNotificationDTO;
 import com.socialdemo.socialdemo.dto.EngineerWorkDTO;
 import com.socialdemo.socialdemo.dto.FaceTimeResponseDTO;
 import com.socialdemo.socialdemo.dto.Feedback;
+import com.socialdemo.socialdemo.dto.ReceiverNotificationDTO;
 import com.socialdemo.socialdemo.dto.ReviewDTO;
 import com.socialdemo.socialdemo.dto.SkillMapping;
 import com.socialdemo.socialdemo.dto.StatusResponseDTO;
@@ -39,6 +43,7 @@ import com.socialdemo.socialdemo.entity.EngineerPrefrence;
 import com.socialdemo.socialdemo.entity.JobDetails;
 import com.socialdemo.socialdemo.entity.NotificationPojo;
 import com.socialdemo.socialdemo.entity.Profile;
+import com.socialdemo.socialdemo.entity.ReceiverNotification;
 import com.socialdemo.socialdemo.entity.Review;
 import com.socialdemo.socialdemo.entity.Status;
 import com.socialdemo.socialdemo.entity.TaskType;
@@ -48,6 +53,7 @@ import com.socialdemo.socialdemo.repository.EngineerPrefrenceRepository;
 import com.socialdemo.socialdemo.repository.EngineerProfileRepository;
 import com.socialdemo.socialdemo.repository.JobDetailsRepository;
 import com.socialdemo.socialdemo.repository.ProfileRepository;
+import com.socialdemo.socialdemo.repository.ReceiverNotificationRepository;
 import com.socialdemo.socialdemo.repository.ReviewRepository;
 import com.socialdemo.socialdemo.repository.StatusRepository;
 import com.socialdemo.socialdemo.repository.TaskTypeRepository;
@@ -69,6 +75,8 @@ public class EngineerService {
 	@Autowired
 	StatusRepository repo;
 
+	ReceiverNotification receiverNotification;
+
 	Status status;
 
 	@Autowired
@@ -88,6 +96,9 @@ public class EngineerService {
 
 	@Autowired
 	ReviewRepository reviewRepository;
+
+	@Autowired
+	ReceiverNotificationRepository receiverNotificationRepository;
 
 	List<EngineerWorkDTO> engineerWorkDTOList = new ArrayList<EngineerWorkDTO>();
 
@@ -124,16 +135,16 @@ public class EngineerService {
 	}
 
 	// public void updateStatus(String techCode) {
-//		Optional<Status> opt = repo.findById(techCode);
-//		Status status1 = opt.isPresent()?opt.get():null;
-//		if(status1.getStatus().equalsIgnoreCase("N")){
-//			status1.setStatus("Y");
-//		}
-//		else {
-//			status1.setStatus("N");
-//		}
-//		repo.save(status1);
-//	}
+	// Optional<Status> opt = repo.findById(techCode);
+	// Status status1 = opt.isPresent()?opt.get():null;
+	// if(status1.getStatus().equalsIgnoreCase("N")){
+	// status1.setStatus("Y");
+	// }
+	// else {
+	// status1.setStatus("N");
+	// }
+	// repo.save(status1);
+	// }
 
 	public void updateStatus(StatusResponseDTO statusResponseDTO) {
 		try {
@@ -227,16 +238,17 @@ public class EngineerService {
 					if (prefrenceDetail.get(i).getActive().equals("Y") && deviceTokenList.size() < 5) {
 
 						List<Profile> empProfile = profileRepo.findByProfile(prefrenceDetail.get(i).getTechCode());
-
 						if (empProfile != null && empProfile.size() > 0) {
 
 							for (int j = 0; j < empProfile.size(); j++) {
-
-								deviceTokenList.add(empProfile.get(j).getDeviceToken());
+								if (!((empProfile.get(j).getTechcode())
+										.equals(jsonObject.get("techCode").toString()))) {
+									deviceTokenList.add(empProfile.get(j).getDeviceToken());
+								}
 							}
+							// deviceTokenList.stream().distinct().collect(Collectors.toList());
 
 						}
-
 					}
 
 				}
@@ -245,6 +257,31 @@ public class EngineerService {
 		}
 
 		jsonToReturn.put("to", deviceTokenList);
+
+		jsonToReturn.getJSONArray("to");
+
+		List<String> techCodeValues = new ArrayList<>();
+		List<ReceiverNotification> listReceiverNotification = new ArrayList<ReceiverNotification>();
+
+		for (int i = 0; i < jsonToReturn.getJSONArray("to").length(); i++) {
+			techCodeValues.add(profileRepo.getTechcode(jsonToReturn.getJSONArray("to").get(i).toString()));
+		}
+		logger.info("this is for getting techcode from devicetoken ::");
+
+		// logger.info("token techcode size::"+techCodeValues.size());
+
+		String groupid = UUID.randomUUID().toString();
+		for (int k = 0; k < techCodeValues.size(); k++) {
+			ReceiverNotification receiverNotification = new ReceiverNotification();
+			// logger.info("requesttechcode ::"+jsonObject.get("techCode").toString());
+			receiverNotification.setGroupid(groupid);
+			receiverNotification.setReqtechcode(jsonObject.get("techCode").toString());
+			receiverNotification.setRecetechcode(techCodeValues.get(k));
+			listReceiverNotification.add(receiverNotification);
+		}
+		receiverNotificationRepository.saveAll(listReceiverNotification);
+
+		jsonToReturn.put("groupid", groupid);
 
 		NotificationPojo notificationModal = new NotificationPojo();
 
@@ -285,103 +322,106 @@ public class EngineerService {
 			e.printStackTrace();
 		}
 
-		// return jsonToReturn.toString();
+		//return jsonToReturn.toString();
 
-		// }
-//		RestTemplate restTemplate = new RestTemplate();
-//		
-//		UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl("https://fcm.googleapis.com/fcm/send");
-//		
-//		HttpHeaders headers = new HttpHeaders();
-//		
-//		headers.setContentType(MediaType.APPLICATION_JSON);
-//		
-//		HttpEntity<String> entity = new HttpEntity<String>(jsonToReturn.toString(), headers);
-//		
-//		ResponseEntity<String> response = restTemplate.postForEntity(builder.build().encode().toUri(), entity, String.class);
+	//}
+	// RestTemplate restTemplate = new RestTemplate();
+	//
+	// UriComponentsBuilder builder =
+	// UriComponentsBuilder.fromHttpUrl("https://fcm.googleapis.com/fcm/send");
+	//
+	// HttpHeaders headers = new HttpHeaders();
+	//
+	// headers.setContentType(MediaType.APPLICATION_JSON);
+	//
+	// HttpEntity<String> entity = new HttpEntity<String>(jsonToReturn.toString(),
+	// headers);
+	//
+	// ResponseEntity<String> response =
+	// restTemplate.postForEntity(builder.build().encode().toUri(), entity,
+	// String.class);
 
-		URL url = null;
+	URL url = null;
+
+	try {
+
+		url = new URL("https://fcm.googleapis.com/fcm/send");
+
+	} catch (MalformedURLException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+
+	HttpURLConnection con = null;
+	try {
+		con = (HttpURLConnection) url.openConnection();
+	} catch (IOException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+	con.setDoOutput(true);
+	con.setRequestProperty("Content-Type", "application/json");
+	con.setRequestProperty("Authorization",
+			"key=AAAASK8QTug:APA91bGsldhw8ldQTmhloi1HgjgGm8tZxluzLiQmdJ9YjqhbeRm5Lc7LjIr4Td8eLh8MD6awYDv2Z8vupAPboFx4IrbHUAJUdITqZNJIDDeXnQS2Bdx2kd1nH0Le6_t69fp9rJ_lxWVe");
+	// "key=AAAAbwhaNR4:APA91bEyGTqrH-UoX4b9OBOXWwVl5dV3pkyC2SubM_UMHJiJzlmXQbSx4WKUhTeUAiYaY4_jorjT0k1mAAu5KV9Z5FXjZ1f2z_jZZnjZw2_4sjP-9J--2kkadx7PnrVzns2DXPnev8Cz");
+	try {
+		con.setRequestMethod("POST");
+	} catch (ProtocolException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+	con.setInstanceFollowRedirects(false);
+	// connect
+	try {
+		con.connect();
+	} catch (IOException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+
+	try {
+		OutputStreamWriter wr = new OutputStreamWriter(con.getOutputStream());
+		wr.write(jsonToReturn.toString());
+		wr.flush();
+	} catch (IOException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+
+	BufferedReader reader = null;
+
+	String response = null;
+
+	int status = 0;
+
+	if (null != con) {
 
 		try {
-
-			url = new URL("https://fcm.googleapis.com/fcm/send");
-
-		} catch (MalformedURLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		HttpURLConnection con = null;
-		try {
-			con = (HttpURLConnection) url.openConnection();
+			status = con.getResponseCode();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		con.setDoOutput(true);
-		con.setRequestProperty("Content-Type", "application/json");
-		con.setRequestProperty("Authorization",
-				"key=AAAASK8QTug:APA91bGsldhw8ldQTmhloi1HgjgGm8tZxluzLiQmdJ9YjqhbeRm5Lc7LjIr4Td8eLh8MD6awYDv2Z8vupAPboFx4IrbHUAJUdITqZNJIDDeXnQS2Bdx2kd1nH0Le6_t69fp9rJ_lxWVe");
-		// "key=AAAAbwhaNR4:APA91bEyGTqrH-UoX4b9OBOXWwVl5dV3pkyC2SubM_UMHJiJzlmXQbSx4WKUhTeUAiYaY4_jorjT0k1mAAu5KV9Z5FXjZ1f2z_jZZnjZw2_4sjP-9J--2kkadx7PnrVzns2DXPnev8Cz");
-		try {
-			con.setRequestMethod("POST");
-		} catch (ProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		con.setInstanceFollowRedirects(false);
-		// connect
-		try {
-			con.connect();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
-		try {
-			OutputStreamWriter wr = new OutputStreamWriter(con.getOutputStream());
-			wr.write(jsonToReturn.toString());
-			wr.flush();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+	}
 
-		BufferedReader reader = null;
+	if (status != 0) {
 
-		String response = null;
-
-		int status = 0;
-
-		if (null != con) {
+		if (status == 200) {
 
 			try {
-				status = con.getResponseCode();
+				reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
+				response = reader.readLine();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 
 		}
-
-		if (status != 0) {
-
-			if (status == 200) {
-
-				try {
-					reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
-					response = reader.readLine();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-
-			}
-		}
-		return response;
-
 	}
+	return response;
 
+}
 	public void getUiMessage(String uiMessage) {
 
 	}
@@ -444,28 +484,28 @@ public class EngineerService {
 
 			skillMapping.setDefaultSkill("1");
 
-//			List<SkillMapping> skillMappingLs = new ArrayList<>();
-//			
-//			skillMappingLs.add(skillMapping);
-//			
-//			engineerWorkDTO.setSkillMapping(skillMappingLs);
-//			
-//			subSkills.stream().forEach(subSkillsList->{
-//				SkillMapping skillMapping1 = new SkillMapping();
-//				
-//				skillMapping1.setSkillId(subSkillsList);
-//				
-//				skillMapping1.setDefaultSkill("0");
-//				
-//				List<SkillMapping> skillMappingLs1 = new ArrayList<>();
-//				
-//				skillMappingLs1.add(skillMapping1);
-//				
-//				engineerWorkDTO.setSkillMapping(skillMappingLs1);
-//			});
-//			
-//			engineerWorkDTOList.add(engineerWorkDTO);
-//		});
+			// List<SkillMapping> skillMappingLs = new ArrayList<>();
+			//
+			// skillMappingLs.add(skillMapping);
+			//
+			// engineerWorkDTO.setSkillMapping(skillMappingLs);
+			//
+			// subSkills.stream().forEach(subSkillsList->{
+			// SkillMapping skillMapping1 = new SkillMapping();
+			//
+			// skillMapping1.setSkillId(subSkillsList);
+			//
+			// skillMapping1.setDefaultSkill("0");
+			//
+			// List<SkillMapping> skillMappingLs1 = new ArrayList<>();
+			//
+			// skillMappingLs1.add(skillMapping1);
+			//
+			// engineerWorkDTO.setSkillMapping(skillMappingLs1);
+			// });
+			//
+			// engineerWorkDTOList.add(engineerWorkDTO);
+			// });
 			List<SkillMapping> skillMappingLs = new ArrayList<>();
 			skillMappingLs.add(skillMapping);
 			TreeSet<SkillMapping> uniqueSkills = new TreeSet<>();
@@ -500,6 +540,37 @@ public class EngineerService {
 
 	public List<Review> getAll() {
 		return reviewRepository.findAll();
+	}
+
+	public void updateNotificationStatus(ReceiverNotificationDTO receiverNotificationDTO) {
+		try {
+			logger.info("recivernotification groupid  ::" + receiverNotificationDTO.getGroupid());
+			logger.info("recivernotification techcode  ::" + receiverNotificationDTO.getRecetechcode());
+
+			ReceiverNotification receiverNotification = receiverNotificationRepository
+					.getStatus(receiverNotificationDTO.getRecetechcode(), receiverNotificationDTO.getGroupid());
+
+			// ReceiverNotification receiverNotification = opt.isPresent() ? opt.get() :
+			// null;
+			receiverNotification.setStatus(receiverNotificationDTO.getStatus());
+			logger.info("recivernotification status ::" + receiverNotification.getStatus());
+
+			receiverNotificationRepository.save(receiverNotification);
+
+		} catch (Exception e) {
+
+			logger.info("No such groupId exist:: " + e.getStackTrace());
+
+		}
+
+	}
+
+	public String getAcceptedCallDetail(AcceptedNotificationDTO acceptedNotificationDTO) {
+
+		ReceiverNotification receiverNotification = receiverNotificationRepository
+				.getTechcodeByStatus(acceptedNotificationDTO.getReqtechcode(), acceptedNotificationDTO.getStatus());
+
+		return receiverNotification.getRecetechcode();
 	}
 
 }
